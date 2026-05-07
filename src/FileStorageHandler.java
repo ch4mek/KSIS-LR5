@@ -10,9 +10,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
- * HTTP request handler for the REST file storage API.
- * Supports GET, PUT, HEAD, and DELETE methods.
- * PUT with X-Copy-From header performs a file copy operation.
+ * Обработчик HTTP-запросов для REST API файлового хранилища.
+ * Поддерживает методы GET, PUT, HEAD и DELETE.
+ * PUT с заголовком X-Copy-From выполняет копирование файла.
  */
 public class FileStorageHandler implements HttpHandler {
 
@@ -30,9 +30,9 @@ public class FileStorageHandler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         try {
-            // Validate path — reject path traversal attempts
+            // Проверка пути — отклоняем попытки обхода каталогов
             if (path.contains("..")) {
-                sendErrorResponse(exchange, HttpURLConnection.HTTP_BAD_REQUEST, "Invalid path: path traversal not allowed");
+                sendErrorResponse(exchange, HttpURLConnection.HTTP_BAD_REQUEST, "Некорректный путь: обход каталогов запрещён");
                 return;
             }
 
@@ -51,47 +51,46 @@ public class FileStorageHandler implements HttpHandler {
                     break;
                 default:
                     sendErrorResponse(exchange, HttpURLConnection.HTTP_BAD_METHOD,
-                            "Method not allowed: " + method);
+                            "Метод не поддерживается: " + method);
                     break;
             }
         } catch (IllegalArgumentException e) {
             sendErrorResponse(exchange, HttpURLConnection.HTTP_BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
-            sendErrorResponse(exchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Internal server error");
+            sendErrorResponse(exchange, HttpURLConnection.HTTP_INTERNAL_ERROR, "Внутренняя ошибка сервера");
         } finally {
             exchange.close();
         }
     }
 
     /**
-     * GET — download a file, list a directory, or serve the web UI.
-     * If the path is a directory and client accepts text/html (browser) → serve web UI.
-     * If the path is a directory and client accepts application/json → serve JSON listing.
-     * Otherwise, return the file content as a binary stream.
+     * GET — скачивание файла, список каталога или веб-интерфейс.
+     * Если путь — каталог и клиент принимает text/html (браузер) → отдаём веб-интерфейс.
+     * Если путь — каталог и клиент принимает application/json → отдаём JSON-список.
+     * Иначе возвращаем содержимое файла как бинарный поток.
      */
     private void handleGet(HttpExchange exchange, String path) throws IOException {
-        // Check if client is a browser requesting HTML
+        // Проверяем, является ли клиент браузером
         String accept = exchange.getRequestHeaders().getFirst("Accept");
         boolean wantsHtml = accept != null && accept.contains("text/html");
 
         if (!storageService.exists(path)) {
             if (wantsHtml) {
-                // For browser: serve the web UI even for non-existent paths
-                // (the JavaScript will handle showing "not found")
+                // Для браузера: отдаём веб-интерфейс даже для несуществующих путей
                 serveWebUI(exchange);
                 return;
             }
-            sendErrorResponse(exchange, HttpURLConnection.HTTP_NOT_FOUND, "Not found: " + path);
+            sendErrorResponse(exchange, HttpURLConnection.HTTP_NOT_FOUND, "Не найдено: " + path);
             return;
         }
 
         if (storageService.isDirectory(path)) {
             if (wantsHtml) {
-                // Browser requesting a directory → serve the web UI HTML page
+                // Браузер запрашивает каталог → отдаём HTML-страницу
                 serveWebUI(exchange);
             } else {
-                // API client (curl, JavaScript fetch) → serve JSON listing
+                // API-клиент (curl, JavaScript fetch) → отдаём JSON-список
                 StorageService.DirectoryListing listing = storageService.listDirectory(path);
                 String json = storageService.directoryListingToJson(listing);
                 byte[] jsonBytes = json.getBytes("UTF-8");
@@ -105,7 +104,7 @@ public class FileStorageHandler implements HttpHandler {
                 }
             }
         } else {
-            // Return file content
+            // Возвращаем содержимое файла
             byte[] content = storageService.getFile(path);
             StorageService.FileInfo info = storageService.getFileInfo(path);
 
@@ -124,25 +123,25 @@ public class FileStorageHandler implements HttpHandler {
     }
 
     /**
-     * PUT — upload a file (body = content) or copy a file (X-Copy-From header).
-     * Returns 201 if a new file was created, 204 if an existing file was overwritten.
+     * PUT — загрузка файла (тело = содержимое) или копирование файла (заголовок X-Copy-From).
+     * Возвращает 201 если создан новый файл, 204 если перезаписан существующий.
      */
     private void handlePut(HttpExchange exchange, String path) throws IOException {
         String copyFromHeader = exchange.getRequestHeaders().getFirst("X-Copy-From");
 
         boolean created;
         if (copyFromHeader != null && !copyFromHeader.isEmpty()) {
-            // Copy operation
+            // Операция копирования
             String sourcePath = copyFromHeader;
-            // Validate source path
+            // Проверка исходного пути
             if (sourcePath.contains("..")) {
                 sendErrorResponse(exchange, HttpURLConnection.HTTP_BAD_REQUEST,
-                        "Invalid source path: path traversal not allowed");
+                        "Некорректный исходный путь: обход каталогов запрещён");
                 return;
             }
             if (!storageService.fileExists(sourcePath)) {
                 sendErrorResponse(exchange, HttpURLConnection.HTTP_NOT_FOUND,
-                        "Source file not found: " + sourcePath);
+                        "Исходный файл не найден: " + sourcePath);
                 return;
             }
             try {
@@ -155,7 +154,7 @@ public class FileStorageHandler implements HttpHandler {
                 return;
             }
         } else {
-            // Upload operation — read body as file content
+            // Операция загрузки — читаем тело как содержимое файла
             byte[] content = readRequestBody(exchange);
             if (content == null) {
                 content = new byte[0];
@@ -173,17 +172,17 @@ public class FileStorageHandler implements HttpHandler {
     }
 
     /**
-     * HEAD — return file metadata as HTTP headers without the body.
-     * Sets Content-Length and Last-Modified headers.
+     * HEAD — возвращает метаданные файла как HTTP-заголовки без тела.
+     * Устанавливает заголовки Content-Length и Last-Modified.
      */
     private void handleHead(HttpExchange exchange, String path) throws IOException {
         if (!storageService.exists(path)) {
-            sendErrorResponse(exchange, HttpURLConnection.HTTP_NOT_FOUND, "Not found: " + path);
+            sendErrorResponse(exchange, HttpURLConnection.HTTP_NOT_FOUND, "Не найдено: " + path);
             return;
         }
 
         if (storageService.isDirectory(path)) {
-            // For directories, return basic info
+            // Для каталогов возвращаем базовую информацию
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
             exchange.sendResponseHeaders(HttpURLConnection.HTTP_OK, -1);
             return;
@@ -201,12 +200,12 @@ public class FileStorageHandler implements HttpHandler {
     }
 
     /**
-     * DELETE — remove a file or directory (recursively).
-     * Returns 204 on success, 404 if not found.
+     * DELETE — удаление файла или каталога (рекурсивно).
+     * Возвращает 204 при успехе, 404 если не найден.
      */
     private void handleDelete(HttpExchange exchange, String path) throws IOException {
         if (!storageService.exists(path)) {
-            sendErrorResponse(exchange, HttpURLConnection.HTTP_NOT_FOUND, "Not found: " + path);
+            sendErrorResponse(exchange, HttpURLConnection.HTTP_NOT_FOUND, "Не найдено: " + path);
             return;
         }
 
@@ -219,7 +218,7 @@ public class FileStorageHandler implements HttpHandler {
     }
 
     /**
-     * Reads the entire request body into a byte array.
+     * Читает всё тело запроса в массив байтов.
      */
     private byte[] readRequestBody(HttpExchange exchange) throws IOException {
         try (InputStream is = exchange.getRequestBody()) {
@@ -228,7 +227,7 @@ public class FileStorageHandler implements HttpHandler {
     }
 
     /**
-     * Sends an error response with the given status code and message.
+     * Отправляет ответ об ошибке с указанным кодом состояния и сообщением.
      */
     private void sendErrorResponse(HttpExchange exchange, int statusCode, String message) throws IOException {
         byte[] responseBytes = message.getBytes("UTF-8");
@@ -245,7 +244,7 @@ public class FileStorageHandler implements HttpHandler {
     }
 
     /**
-     * Extracts the file name from a path (the last segment).
+     * Извлекает имя файла из пути (последний сегмент).
      */
     private String getFileName(String path) {
         if (path.endsWith("/")) {
@@ -256,14 +255,14 @@ public class FileStorageHandler implements HttpHandler {
     }
 
     /**
-     * Formats a timestamp (epoch millis) as an RFC 1123 date string.
+     * Форматирует временную метку (epoch millis) как строку даты RFC 1123.
      */
     private String formatDate(long epochMillis) {
         return RFC_1123_FORMATTER.format(java.time.Instant.ofEpochMilli(epochMillis));
     }
 
     /**
-     * Serves the web UI HTML page to the browser.
+     * Отдаёт HTML-страницу веб-интерфейса браузеру.
      */
     private void serveWebUI(HttpExchange exchange) throws IOException {
         byte[] htmlBytes = WebUI.HTML.getBytes("UTF-8");

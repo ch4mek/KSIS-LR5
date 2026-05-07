@@ -7,15 +7,15 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Service layer for filesystem operations on the virtual storage root.
- * All paths are resolved relative to the configured storage root directory.
+ * Сервисный слой для файловых операций в корневом каталоге хранилища.
+ * Все пути разрешаются относительно настроенного корневого каталога хранилища.
  */
 public class StorageService {
 
     private final Path storageRoot;
 
     /**
-     * Metadata for a single file.
+     * Метаданные файла.
      */
     public static class FileInfo {
         private final long size;
@@ -36,11 +36,11 @@ public class StorageService {
     }
 
     /**
-     * Entry within a directory listing — can be a file or a subdirectory.
+     * Запись в списке каталога — файл или подкаталог.
      */
     public static class DirectoryEntry {
         private final String name;
-        private final String type; // "file" or "directory"
+        private final String type; // "file" или "directory"
         private final long size;
         private final long lastModified;
 
@@ -69,7 +69,7 @@ public class StorageService {
     }
 
     /**
-     * Listing of a directory's contents.
+     * Список содержимого каталога.
      */
     public static class DirectoryListing {
         private final String path;
@@ -97,8 +97,8 @@ public class StorageService {
     }
 
     /**
-     * Resolves a virtual path to a real filesystem path within the storage root.
-     * Throws IllegalArgumentException if the resolved path escapes the storage root.
+     * Преобразует виртуальный путь в реальный путь файловой системы внутри корня хранилища.
+     * Выбрасывает IllegalArgumentException если результирующий путь выходит за пределы хранилища.
      */
     private Path resolvePath(String virtualPath) {
         String cleaned = virtualPath;
@@ -107,13 +107,13 @@ public class StorageService {
         }
         Path resolved = storageRoot.resolve(cleaned).normalize();
         if (!resolved.startsWith(storageRoot)) {
-            throw new IllegalArgumentException("Path traversal detected: " + virtualPath);
+            throw new IllegalArgumentException("Обнаружен обход каталогов: " + virtualPath);
         }
         return resolved;
     }
 
     /**
-     * Checks if the virtual path points to an existing file.
+     * Проверяет, указывает ли виртуальный путь на существующий файл.
      */
     public boolean fileExists(String virtualPath) {
         Path path = resolvePath(virtualPath);
@@ -121,7 +121,7 @@ public class StorageService {
     }
 
     /**
-     * Checks if the virtual path points to an existing directory.
+     * Проверяет, указывает ли виртуальный путь на существующий каталог.
      */
     public boolean directoryExists(String virtualPath) {
         Path path = resolvePath(virtualPath);
@@ -129,7 +129,7 @@ public class StorageService {
     }
 
     /**
-     * Checks if the virtual path exists (file or directory).
+     * Проверяет, существует ли виртуальный путь (файл или каталог).
      */
     public boolean exists(String virtualPath) {
         Path path = resolvePath(virtualPath);
@@ -137,7 +137,7 @@ public class StorageService {
     }
 
     /**
-     * Checks if the virtual path is a directory.
+     * Проверяет, является ли виртуальный путь каталогом.
      */
     public boolean isDirectory(String virtualPath) {
         Path path = resolvePath(virtualPath);
@@ -145,7 +145,7 @@ public class StorageService {
     }
 
     /**
-     * Reads the entire content of a file and returns it as a byte array.
+     * Читает всё содержимое файла и возвращает как массив байтов.
      */
     public byte[] getFile(String virtualPath) throws IOException {
         Path path = resolvePath(virtualPath);
@@ -153,15 +153,15 @@ public class StorageService {
     }
 
     /**
-     * Writes content to a file. Creates parent directories if needed.
+     * Записывает содержимое в файл. Создаёт родительские каталоги при необходимости.
      *
-     * @return true if a new file was created, false if an existing file was overwritten.
+     * @return true если создан новый файл, false если перезаписан существующий.
      */
     public boolean putFile(String virtualPath, byte[] content) throws IOException {
         Path path = resolvePath(virtualPath);
-        // Prevent writing over a directory
+        // Предотвращаем запись поверх каталога
         if (Files.isDirectory(path)) {
-            throw new IOException("Cannot write file: path is a directory");
+            throw new IOException("Невозможно записать файл: путь является каталогом");
         }
         Files.createDirectories(path.getParent());
         boolean existed = Files.exists(path);
@@ -170,19 +170,19 @@ public class StorageService {
     }
 
     /**
-     * Copies a file from source to destination. Creates parent directories if needed.
+     * Копирует файл из источника в назначение. Создаёт родительские каталоги при необходимости.
      *
-     * @return true if a new file was created at destination, false if overwritten.
+     * @return true если создан новый файл в назначении, false если перезаписан.
      */
     public boolean copyFile(String sourceVirtualPath, String destVirtualPath) throws IOException {
         Path source = resolvePath(sourceVirtualPath);
         Path dest = resolvePath(destVirtualPath);
 
         if (!Files.exists(source) || !Files.isRegularFile(source)) {
-            throw new NoSuchFileException("Source file not found: " + sourceVirtualPath);
+            throw new NoSuchFileException("Исходный файл не найден: " + sourceVirtualPath);
         }
         if (Files.isDirectory(dest)) {
-            throw new IOException("Cannot copy: destination path is a directory");
+            throw new IOException("Невозможно копировать: путь назначения является каталогом");
         }
 
         Files.createDirectories(dest.getParent());
@@ -192,12 +192,12 @@ public class StorageService {
     }
 
     /**
-     * Deletes a file or directory (recursively).
+     * Удаляет файл или каталог (рекурсивно).
      */
     public void delete(String virtualPath) throws IOException {
         Path path = resolvePath(virtualPath);
         if (!Files.exists(path)) {
-            throw new NoSuchFileException("Not found: " + virtualPath);
+            throw new NoSuchFileException("Не найдено: " + virtualPath);
         }
         if (Files.isDirectory(path)) {
             deleteRecursively(path);
@@ -207,7 +207,7 @@ public class StorageService {
     }
 
     /**
-     * Recursively deletes a directory and all its contents.
+     * Рекурсивно удаляет каталог и всё его содержимое.
      */
     private void deleteRecursively(Path dir) throws IOException {
         Files.walkFileTree(dir, new SimpleFileVisitor<>() {
@@ -226,12 +226,12 @@ public class StorageService {
     }
 
     /**
-     * Returns file metadata (size and last modified timestamp).
+     * Возвращает метаданные файла (размер и временную метку последнего изменения).
      */
     public FileInfo getFileInfo(String virtualPath) throws IOException {
         Path path = resolvePath(virtualPath);
         if (!Files.exists(path) || !Files.isRegularFile(path)) {
-            throw new NoSuchFileException("File not found: " + virtualPath);
+            throw new NoSuchFileException("Файл не найден: " + virtualPath);
         }
         long size = Files.size(path);
         long lastModified = Files.getLastModifiedTime(path).toMillis();
@@ -239,12 +239,12 @@ public class StorageService {
     }
 
     /**
-     * Lists the contents of a directory.
+     * Возвращает список содержимого каталога.
      */
     public DirectoryListing listDirectory(String virtualPath) throws IOException {
         Path path = resolvePath(virtualPath);
         if (!Files.exists(path) || !Files.isDirectory(path)) {
-            throw new NoSuchFileException("Directory not found: " + virtualPath);
+            throw new NoSuchFileException("Каталог не найден: " + virtualPath);
         }
 
         List<DirectoryEntry> entries = new ArrayList<>();
@@ -265,7 +265,7 @@ public class StorageService {
             });
         }
 
-        // Sort: directories first, then files, alphabetically within each group
+        // Сортировка: сначала каталоги, потом файлы, по алфавиту в каждой группе
         entries.sort((a, b) -> {
             if (!a.getType().equals(b.getType())) {
                 return a.getType().equals("directory") ? -1 : 1;
@@ -277,7 +277,7 @@ public class StorageService {
     }
 
     /**
-     * Converts the directory listing to a JSON string.
+     * Преобразует список каталога в строку JSON.
      */
     public String directoryListingToJson(DirectoryListing listing) {
         StringBuilder sb = new StringBuilder();
@@ -311,7 +311,7 @@ public class StorageService {
     }
 
     /**
-     * Escapes special characters for JSON string values.
+     * Экранирует специальные символы для строковых значений JSON.
      */
     private String escapeJson(String value) {
         return value.replace("\\", "\\\\")

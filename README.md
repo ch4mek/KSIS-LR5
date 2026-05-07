@@ -12,7 +12,7 @@
 ### Компиляция
 
 ```bash
-javac -d out src/Main.java src/StorageService.java src/FileStorageHandler.java src/WebUI.java
+javac -encoding UTF-8 -d out src/Main.java src/StorageService.java src/FileStorageHandler.java src/WebUI.java
 ```
 
 ### Запуск сервера

@@ -4,13 +4,12 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 
 /**
- * Entry point for the Remote File Storage REST API server.
- * Starts an HTTP server on the specified port (default: 8080) and registers
- * the FileStorageHandler to serve all requests.
+ * Точка входа для REST API сервера удалённого файлового хранилища.
+ * Запускает HTTP-сервер на указанном порту и регистрирует обработчик запросов.
  *
- * Usage: java Main [port] [storage-path]
- *   port          — HTTP port to listen on (default: 8080)
- *   storage-path  — local directory for file storage (default: ./storage)
+ * Использование: java Main [порт] [путь_к_хранилищу]
+ *   порт          — HTTP-порт (по умолчанию: 8080)
+ *   путь_к_хранилищу  — локальная директория для хранения файлов (по умолчанию: ./storage)
  */
 public class Main {
 
@@ -25,8 +24,8 @@ public class Main {
             try {
                 port = Integer.parseInt(args[0]);
             } catch (NumberFormatException e) {
-                System.err.println("Invalid port number: " + args[0]);
-                System.err.println("Usage: java Main [port] [storage-path]");
+                System.err.println("Некорректный номер порта: " + args[0]);
+                System.err.println("Использование: java Main [порт] [путь_к_хранилищу]");
                 System.exit(1);
             }
         }
@@ -36,40 +35,40 @@ public class Main {
         }
 
         try {
-            // Initialize storage service
+            // Инициализация сервиса хранилища
             StorageService storageService = new StorageService(storagePath);
-            System.out.println("Storage root: " + storagePath);
+            System.out.println("Корневой каталог хранилища: " + storagePath);
 
-            // Create HTTP server
+            // Создание HTTP-сервера
             HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext("/", new FileStorageHandler(storageService));
-            server.setExecutor(null); // default executor
+            server.setExecutor(null); // исполнитель по умолчанию
 
-            // Register shutdown hook to release port on Ctrl+C
+            // Обработчик завершения для освобождения порта при Ctrl+C
             Thread shutdownHook = new Thread(() -> {
-                System.out.println("\nShutting down server...");
+                System.out.println("\nОстановка сервера...");
                 server.stop(0);
-                System.out.println("Server stopped. Port released.");
+                System.out.println("Сервер остановлен. Порт освобождён.");
             });
             Runtime.getRuntime().addShutdownHook(shutdownHook);
 
-            // Start server
+            // Запуск сервера
             server.start();
-            System.out.println("File Storage REST API server started on port " + port);
-            System.out.println("Access via: http://localhost:" + port + "/");
+            System.out.println("REST API сервер файлового хранилища запущен на порту " + port);
+            System.out.println("Доступ: http://localhost:" + port + "/");
             System.out.println();
-            System.out.println("Supported operations:");
-            System.out.println("  GET    /path/to/file.txt          — Download file");
-            System.out.println("  GET    /path/to/dir/               — List directory (JSON)");
-            System.out.println("  PUT    /path/to/file.txt          — Upload file");
-            System.out.println("  PUT    /path/to/file.txt + X-Copy-From: /src — Copy file");
-            System.out.println("  HEAD   /path/to/file.txt          — Get file info");
-            System.out.println("  DELETE /path/to/file.txt          — Delete file/directory");
+            System.out.println("Поддерживаемые операции:");
+            System.out.println("  GET    /path/to/file.txt          — Скачать файл");
+            System.out.println("  GET    /path/to/dir/               — Список каталога (JSON)");
+            System.out.println("  PUT    /path/to/file.txt          — Загрузить файл");
+            System.out.println("  PUT    /path/to/file.txt + X-Copy-From: /src — Копировать файл");
+            System.out.println("  HEAD   /path/to/file.txt          — Информация о файле");
+            System.out.println("  DELETE /path/to/file.txt          — Удалить файл/каталог");
             System.out.println();
-            System.out.println("Press Ctrl+C to stop the server.");
+            System.out.println("Нажмите Ctrl+C для остановки сервера.");
 
         } catch (IOException e) {
-            System.err.println("Failed to start server: " + e.getMessage());
+            System.err.println("Ошибка запуска сервера: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
         }

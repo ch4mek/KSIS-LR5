@@ -1,7 +1,7 @@
 /**
- * Web UI HTML page for the file storage browser.
- * Served to browsers when they request the root or directory pages.
- * Uses JavaScript fetch() to interact with the REST API.
+ * HTML-страница веб-интерфейса для просмотра файлового хранилища.
+ * Отдаётся браузерам при запросе корневого каталога или подкаталогов.
+ * Использует JavaScript fetch() для взаимодействия с REST API.
  */
 public class WebUI {
 
